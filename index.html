@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>말랑말랑 마법 일기장 ✏️</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 구글 폰트 (Gaegu, Gowun Dodum, Gamja Flower) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gamja+Flower&family=Gowun+Dodum:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+            background-color: #fefce8; /* Soft Warm Yellow */
+        }
+        .font-gaegu {
+            font-family: 'Gaegu', cursive;
+        }
+        .font-handwriting {
+            font-family: 'Gamja Flower', cursive;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fefce8;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #fcd34d;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #fbbf24;
+        }
+
+        .weather-btn.active {
+            background-color: #fef08a !important;
+            border-color: #f59e0b !important;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .style-btn.active {
+            background-color: #fef3c7 !important;
+            border-color: #d97706 !important;
+            color: #92400e !important;
+            font-weight: bold;
+        }
+
+        /* Toast message animation */
+        @keyframes toast-in {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .animate-toast {
+            animation: toast-in 0.25s ease-out forwards;
+        }
+
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(0.98); }
+        }
+        .animate-magic-pulse {
+            animation: pulse-slow 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-2 md:p-5 text-slate-800 flex flex-col items-center justify-center relative">
+
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800/90 text-white text-xs md:text-sm font-semibold px-4 py-2.5 rounded-2xl shadow-xl z-50 hidden transition-all duration-300 pointer-events-none flex items-center gap-2">
+        <span id="toastIcon">✨</span>
+        <span id="toastMessage">메시지 내용</span>
+    </div>
+
+    <div class="max-w-7xl w-full bg-white border-4 border-amber-200 rounded-3xl shadow-xl p-3 md:p-5 flex flex-col my-auto max-h-[96vh] overflow-hidden">
+        
+        <!-- 앱 헤더 -->
+        <header class="flex justify-between items-center mb-3 pb-2 border-b-2 border-dashed border-amber-200 shrink-0">
+            <div class="flex items-center gap-2">
+                <span class="text-3xl">✨</span>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold font-gaegu text-amber-600 flex items-center gap-2">
+                        말랑말랑 AI 마법 일기장 ✏️
+                        <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-sans border border-amber-300 font-semibold">Gemini AI 탑재</span>
+                    </h1>
+                </div>
+            </div>
+            
+            <button onclick="playBtnSound(); openModal()" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold rounded-xl transition flex items-center gap-1 shadow-sm active:scale-95">
+                <span>⚙️ 구글 시트 연동 설정</span>
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden flex-1">
+            
+            <div class="lg:col-span-7 flex flex-col overflow-y-auto pr-1 space-y-3">
+                
+                <!-- 1단계: 날짜와 날씨 -->
+                <div class="bg-amber-50/80 border-2 border-amber-200 rounded-2xl p-2.5 shrink-0 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-amber-500 text-white font-bold text-xs px-2 py-1 rounded-lg">1단계</span>
+                        <span class="font-bold text-xs text-amber-900">📅 날짜와 ☀️ 날씨</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- 날짜 입력 -->
+                        <input type="date" id="diaryDate" class="p-1 bg-white border border-amber-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-amber-500 text-slate-700">
+                        
+                        <!-- 날씨 버튼 그룹 -->
+                        <div class="flex gap-1" id="weatherGroup">
+                            <button type="button" onclick="playBtnSound(); selectWeather('맑음', this)" class="weather-btn active px-2 py-1 bg-white border border-amber-200 hover:bg-amber-100 rounded-lg text-xs transition">☀️ 맑음</button>
+                            <button type="button" onclick="playBtnSound(); selectWeather('구름', this)" class="weather-btn px-2 py-1 bg-white border border-amber-200 hover:bg-amber-100 rounded-lg text-xs transition">⛅ 구름</button>
+                            <button type="button" onclick="playBtnSound(); selectWeather('비', this)" class="weather-btn px-2 py-1 bg-white border border-amber-200 hover:bg-amber-100 rounded-lg text-xs transition">🌧️ 비</button>
+                            <button type="button" onclick="playBtnSound(); selectWeather('눈', this)" class="weather-btn px-2 py-1 bg-white border border-amber-200 hover:bg-amber-100 rounded-lg text-xs transition">❄️ 눈</button>
+                            <button type="button" onclick="playBtnSound(); selectWeather('바람', this)" class="weather-btn px-2 py-1 bg-white border border-amber-200 hover:bg-amber-100 rounded-lg text-xs transition">💨 바람</button>
+                        </div>
+                        <input type="hidden" id="selectedWeather" value="맑음">
+                    </div>
+                </div>
+
+                <!-- 2단계: 오늘 무슨 일이 있었나요? -->
+                <div class="bg-amber-50/30 border-2 border-amber-200 rounded-2xl p-3 space-y-3">
+                    
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-amber-500 text-white font-bold text-xs px-2 py-1 rounded-lg">2단계</span>
+                            <span class="font-bold text-sm text-slate-800">오늘 무슨 일이 있었나요? (단어를 골라봐요)</span>
+                        </div>
+                    </div>
+
+                    <!-- [어디서] -->
+                    <div class="bg-emerald-50/50 border border-emerald-200 rounded-xl p-2.5 space-y-1.5">
+                        <label class="block text-xs font-bold text-emerald-800">📍 [어디서] 했나요?</label>
+                        <div class="relative flex-1">
+                            <input type="text" id="inputWhere" oninput="updateActivitiesByLocation(this.value)" placeholder="예: 체육관에서, 과학실에서, 할머니 댁에서" class="w-full p-2 pr-7 bg-white border border-emerald-300 rounded-lg text-xs focus:outline-none focus:border-emerald-500">
+                            <button type="button" onclick="clearInput('inputWhere')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 font-bold text-xs p-0.5" title="내용 지우기">✕</button>
+                        </div>
+                        <div class="flex flex-wrap gap-1 pt-1">
+                            <button type="button" onclick="selectLocationTag('교실에서')" class="px-2 py-0.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-md text-[11px]">교실에서</button>
+                            <button type="button" onclick="selectLocationTag('운동장에서')" class="px-2 py-0.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-md text-[11px]">운동장에서</button>
+                            <button type="button" onclick="selectLocationTag('체육관에서')" class="px-2 py-0.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-md text-[11px]">체육관에서</button>
+                            <button type="button" onclick="selectLocationTag('급식실에서')" class="px-2 py-0.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-md text-[11px]">급식실에서</button>
+                            <button type="button" onclick="selectLocationTag('도서관에서')" class="px-2 py-0.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-md text-[11px]">도서관에서</button>
+                            <button type="button" onclick="selectLocationTag('우리 집에서')" class="px-2 py-0.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-md text-[11px]">우리 집에서</button>
+                        </div>
+                    </div>
+
+                    <!-- [누구와] -->
+                    <div class="bg-indigo-50/50 border border-indigo-200 rounded-xl p-2.5 space-y-1.5">
+                        <label class="block text-xs font-bold text-indigo-800">👫 [누구와] 함께 했나요?</label>
+                        <div class="relative flex-1">
+                            <input type="text" id="inputWho" placeholder="예: 친한 친구 민수와, 짝꿍이랑, 가족들과" class="w-full p-2 pr-7 bg-white border border-indigo-300 rounded-lg text-xs focus:outline-none focus:border-indigo-500">
+                            <button type="button" onclick="clearInput('inputWho')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 font-bold text-xs p-0.5" title="내용 지우기">✕</button>
+                        </div>
+                        <div class="flex flex-wrap gap-1 pt-1">
+                            <button type="button" onclick="appendTag('inputWho', '혼자서')" class="px-2 py-0.5 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-md text-[11px]">혼자서</button>
+                            <button type="button" onclick="appendTag('inputWho', '선생님과')" class="px-2 py-0.5 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-md text-[11px]">선생님과</button>
+                            <button type="button" onclick="appendTag('inputWho', '친한 친구들과')" class="px-2 py-0.5 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-md text-[11px]">친한 친구들과</button>
+                            <button type="button" onclick="appendTag('inputWho', '짝꿍과')" class="px-2 py-0.5 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-md text-[11px]">짝꿍과</button>
+                            <button type="button" onclick="appendTag('inputWho', '엄마와')" class="px-2 py-0.5 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-md text-[11px]">엄마와</button>
+                            <button type="button" onclick="appendTag('inputWho', '가족과')" class="px-2 py-0.5 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-md text-[11px]">가족과</button>
+                        </div>
+                    </div>
+
+                    <!-- [무엇을, 어떻게] -->
+                    <div class="bg-orange-50/50 border border-orange-200 rounded-xl p-2.5 space-y-1.5">
+                        <label class="block text-xs font-bold text-orange-800">🎯 [무엇을, 어떻게] 했나요? (구체적 활동)</label>
+                        <div class="relative flex-1">
+                            <textarea id="inputWhat" rows="2" placeholder="예: 종이비행기를 접어 멀리 날리기 내기를 했다" class="w-full p-2 pr-7 bg-white border border-orange-300 rounded-lg text-xs focus:outline-none focus:border-orange-500 resize-none"></textarea>
+                            <button type="button" onclick="clearInput('inputWhat')" class="absolute right-2 top-2 text-slate-400 hover:text-rose-500 font-bold text-xs p-0.5" title="내용 지우기">✕</button>
+                        </div>
+                        <div class="space-y-1 pt-1" id="dynamicActivityTags">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">🎨 추천 활동:</span>
+                                <button type="button" onclick="appendTag('inputWhat', '그림 그리기')" class="px-2 py-0.5 bg-white border border-orange-200 text-orange-700 hover:bg-orange-100 rounded-md text-[11px]">그림 그리기</button>
+                                <button type="button" onclick="appendTag('inputWhat', '공놀이 하기')" class="px-2 py-0.5 bg-white border border-orange-200 text-orange-700 hover:bg-orange-100 rounded-md text-[11px]">공놀이 하기</button>
+                                <button type="button" onclick="appendTag('inputWhat', '블록 성 만들기')" class="px-2 py-0.5 bg-white border border-orange-200 text-orange-700 hover:bg-orange-100 rounded-md text-[11px]">블록 성 만들기</button>
+                                <button type="button" onclick="appendTag('inputWhat', '책 읽기')" class="px-2 py-0.5 bg-white border border-orange-200 text-orange-700 hover:bg-orange-100 rounded-md text-[11px]">책 읽기</button>
+                                <button type="button" onclick="appendTag('inputWhat', '맛있게 밥 먹기')" class="px-2 py-0.5 bg-white border border-orange-200 text-orange-700 hover:bg-orange-100 rounded-md text-[11px]">맛있게 밥 먹기</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- [왜 그 일을 했나요? / 무슨 생각이 들었나요?] -->
+                    <div class="bg-amber-50/50 border border-amber-300 rounded-xl p-2.5 space-y-1.5">
+                        <label class="block text-xs font-bold text-amber-900">💡 [왜 그 일을 했나요? / 무슨 생각이 들었나요?]</label>
+                        <div class="relative flex-1">
+                            <input type="text" id="inputWhy" placeholder="예: 처음에 접을 땐 어려웠지만 날개를 조금 구부리니 멀리 날아가서 신기했다" class="w-full p-2 pr-7 bg-white border border-amber-300 rounded-lg text-xs focus:outline-none focus:border-amber-500">
+                            <button type="button" onclick="clearInput('inputWhy')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 font-bold text-xs p-0.5" title="내용 지우기">✕</button>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            <button type="button" onclick="appendTag('inputWhy', '직접 해보니 생각보다 재미있었다')" class="px-2 py-0.5 bg-white border border-amber-200 text-amber-800 hover:bg-amber-100 rounded-md text-[11px]">직접 해보니 생각보다 재미있었다</button>
+                            <button type="button" onclick="appendTag('inputWhy', '끝까지 포기하지 않고 해내서 뿌듯했다')" class="px-2 py-0.5 bg-white border border-amber-200 text-amber-800 hover:bg-amber-100 rounded-md text-[11px]">끝까지 포기하지 않고 해내서 뿌듯했다</button>
+                            <button type="button" onclick="appendTag('inputWhy', '서로 도와주면서 하니 훨씬 힘이 났다')" class="px-2 py-0.5 bg-white border border-amber-200 text-amber-800 hover:bg-amber-100 rounded-md text-[11px]">서로 도와주면서 하니 힘이 났다</button>
+                            <button type="button" onclick="appendTag('inputWhy', '새로운 사실을 알게 되어 신기했다')" class="px-2 py-0.5 bg-white border border-amber-200 text-amber-800 hover:bg-amber-100 rounded-md text-[11px]">새로운 사실을 알게 되어 신기했다</button>
+                            <button type="button" onclick="appendTag('inputWhy', '친구가 친절하게 양보해 줘서 고마웠다')" class="px-2 py-0.5 bg-white border border-amber-200 text-amber-800 hover:bg-amber-100 rounded-md text-[11px]">친구가 양보해 줘서 고마웠다</button>
+                        </div>
+                    </div>
+
+                    <!-- [그때 기분] -->
+                    <div class="bg-rose-50/50 border border-rose-200 rounded-xl p-2.5 space-y-1.5">
+                        <label class="block text-xs font-bold text-rose-800">💗 그때 [기분]은 어땠나요?</label>
+                        <div class="relative flex-1">
+                            <input type="text" id="inputFeeling" placeholder="예: 꼭 하늘을 나는 것처럼 마음이 들뜨고 신났다" class="w-full p-2 pr-7 bg-white border border-rose-300 rounded-lg text-xs focus:outline-none focus:border-rose-500">
+                            <button type="button" onclick="clearInput('inputFeeling')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 font-bold text-xs p-0.5" title="내용 지우기">✕</button>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            <button type="button" onclick="appendTag('inputFeeling', '정말 신나고 즐거웠다')" class="px-2 py-0.5 bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 rounded-md text-[11px]">정말 신나고 즐거웠다 😆</button>
+                            <button type="button" onclick="appendTag('inputFeeling', '스스로 자랑스럽고 뿌듯했다')" class="px-2 py-0.5 bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 rounded-md text-[11px]">뿌듯하고 자랑스러웠다 😎</button>
+                            <button type="button" onclick="appendTag('inputFeeling', '가슴이 따뜻해지고 고마웠다')" class="px-2 py-0.5 bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 rounded-md text-[11px]">마음이 따뜻해졌다 🥰</button>
+                            <button type="button" onclick="appendTag('inputFeeling', '앞으로가 기대되고 설렜다')" class="px-2 py-0.5 bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 rounded-md text-[11px]">기대되고 설렜다 🤩</button>
+                        </div>
+                    </div>
+
+                    <!-- [AI 일기 말투 선택] -->
+                    <div class="bg-purple-50/60 border border-purple-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-purple-900 flex items-center gap-1">
+                            🎭 일기 분위기 선택:
+                        </span>
+                        <div class="flex gap-1.5" id="styleGroup">
+                            <button type="button" onclick="playBtnSound(); selectStyle('natural', this)" class="style-btn active px-2.5 py-1 bg-white border border-purple-200 text-purple-800 rounded-lg text-xs transition">🌟 생생하고 솔직하게</button>
+                            <button type="button" onclick="playBtnSound(); selectStyle('cheerful', this)" class="style-btn px-2.5 py-1 bg-white border border-purple-200 text-purple-800 rounded-lg text-xs transition">😆 신나고 톡톡 튀게</button>
+                            <button type="button" onclick="playBtnSound(); selectStyle('thoughtful', this)" class="style-btn px-2.5 py-1 bg-white border border-purple-200 text-purple-800 rounded-lg text-xs transition">📚 차분하고 의젓하게</button>
+                        </div>
+                        <input type="hidden" id="selectedStyle" value="natural">
+                    </div>
+
+                </div>
+
+                <!-- 일기 완성하기 액션 버튼 -->
+                <button id="generateBtn" onclick="buildMagicDiary()" class="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-base md:text-lg rounded-2xl shadow-md transition duration-150 flex items-center justify-center gap-2 shrink-0 transform active:scale-95 disabled:opacity-75 disabled:cursor-wait">
+                    <span id="btnIcon">🪄</span>
+                    <span id="btnText">Gemini AI 마법 일기 완성하기! ✨</span>
+                </button>
+
+            </div>
+
+            <!-- [우측 5컬럼] 완성된 마법 일기 영역 -->
+            <div class="lg:col-span-5 flex flex-col justify-between space-y-3 overflow-y-auto bg-amber-50/40 border-2 border-amber-200 rounded-2xl p-3">
+                
+                <div class="flex justify-between items-center pb-2 border-b border-amber-200">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-amber-500 text-white font-bold text-xs px-2 py-1 rounded-lg">3단계</span>
+                        <h2 class="font-bold text-base font-gaegu text-amber-900">AI가 다듬어준 일기장 📖</h2>
+                    </div>
+                </div>
+
+                <!-- 결과 디스플레이 메인 상자 -->
+                <div class="flex-1 space-y-3 flex flex-col justify-between relative min-h-[300px]">
+                    
+                    <!-- 비어 있을 때 가이드 -->
+                    <div id="emptyGuide" class="py-12 flex flex-col items-center justify-center text-center text-amber-800/60 my-auto">
+                        <span class="text-6xl mb-3">🪄</span>
+                        <p class="text-sm font-bold">왼쪽에서 이야기 조각을 작성한 후</p>
+                        <p class="text-xs mt-1">[Gemini AI 마법 일기 완성하기!] 버튼을 눌러주세요.</p>
+                    </div>
+
+                    <!-- AI 생성 중 로딩 상태 -->
+                    <div id="loadingState" class="hidden my-auto py-12 flex flex-col items-center justify-center text-center text-amber-900 animate-magic-pulse space-y-3">
+                        <div class="text-5xl animate-spin">🪄</div>
+                        <div>
+                            <p class="font-bold text-base text-amber-800">Gemini AI가 상상을 더해</p>
+                            <p class="text-xs text-amber-600 mt-1">세상에 단 하나뿐인 일기를 짓고 있어요...</p>
+                        </div>
+                    </div>
+
+                    <!-- 생성된 결과 카드 영역 -->
+                    <div id="resultContent" class="hidden space-y-3">
+                        
+                        <!-- 1. 내가 모은 생각 조각들 요약 -->
+                        <div class="bg-white/80 border border-amber-200 rounded-xl p-2.5 text-xs text-slate-600 leading-relaxed">
+                            <p class="font-bold text-amber-800 mb-1 flex items-center gap-1">
+                                🧩 내가 제공한 생각 조각들:
+                            </p>
+                            <p id="summaryPieces" class="italic text-slate-500 font-sans"></p>
+                        </div>
+
+                        <!-- 2. 교정한 예쁜 일기 (손글씨 서체) -->
+                        <div class="bg-amber-100/60 border-2 border-amber-300 rounded-2xl p-4 shadow-sm relative">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="bg-amber-200 text-amber-900 font-bold text-xs px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    <span>✨ Gemini AI 맞춤 일기</span>
+                                </span>
+                                <span id="displayDateWeather" class="text-[11px] text-amber-800 font-semibold"></span>
+                            </div>
+                            <div id="polishedDiary" class="font-handwriting text-lg md:text-xl text-slate-800 leading-relaxed whitespace-pre-wrap pt-1 min-h-[120px]">
+                            </div>
+                        </div>
+
+                        <!-- 3. 다정이 선생님의 따뜻한 편지 -->
+                        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-3 shadow-sm space-y-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-bold text-rose-800 flex items-center gap-1">
+                                    👩‍🏫 다정이 선생님의 1:1 맞춤 편지 💖
+                                </span>
+                            </div>
+                            <p id="teacherFeedback" class="text-xs md:text-sm text-rose-900 leading-relaxed font-sans"></p>
+                        </div>
+
+                    </div>
+
+                    <!-- 하단 액션 버튼 그룹 -->
+                    <div id="actionButtons" class="hidden grid grid-cols-2 gap-2 pt-2 border-t border-amber-200">
+                        <button onclick="saveToGoogleSheet()" class="py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1 active:scale-95">
+                            <span>❎ 구글 시트 저장</span>
+                        </button>
+                        <button onclick="copyDiaryText()" class="py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1 active:scale-95">
+                            <span>📋 일기 복사하기</span>
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- 구글 시트 안내 모달 -->
+    <div id="guideModal" class="fixed inset-0 bg-black/50 hidden backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white border-4 border-amber-300 rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl relative">
+            
+            <button onclick="playBtnSound(); closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-amber-600 font-bold text-lg">✕</button>
+
+            <h2 class="text-xl font-bold font-gaegu text-amber-600 mb-2 flex items-center gap-2">
+                ⚙️ 구글 시트 연동 설정
+            </h2>
+            
+            <p class="text-xs text-slate-600 mb-3 bg-amber-50 p-2 rounded-xl border border-amber-200">
+                작성한 일기를 내 구글 스프레드시트에 자동으로 저장하려면 아래 순서대로 구글 시트를 만들고 URL을 등록해 주세요.
+            </p>
+
+            <div class="space-y-3 text-xs">
+                <div class="bg-amber-100/60 p-3 rounded-xl border border-amber-300 space-y-1.5">
+                    <h3 class="font-bold text-amber-900 text-xs flex items-center gap-1">
+                        <span>1️⃣ 구글 시트 만들기 & 헤더 작성</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-700 leading-relaxed">
+                        • 구글 드라이브에서 새 스프레드시트를 만들고, 파일 이름을 <strong class="text-amber-900 bg-amber-200 px-1 rounded">일기</strong> 로 지정하세요.<br>
+                        • 스프레드시트의 맨 위 **1행(A1, B1, C1)**에 아래처럼 똑같이 입력해 주세요:
+                    </p>
+                    <div class="grid grid-cols-3 gap-1.5 pt-1 text-center font-bold text-[11px]">
+                        <div class="bg-white p-1.5 rounded-lg border border-amber-300 text-amber-900 shadow-sm">
+                            <span class="block text-[9px] text-amber-500">A1 칸</span>날짜
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-amber-300 text-amber-900 shadow-sm">
+                            <span class="block text-[9px] text-amber-500">B1 칸</span>날씨
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-amber-300 text-amber-900 shadow-sm">
+                            <span class="block text-[9px] text-amber-500">C1 칸</span>내용
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-2">
+                    <h3 class="font-bold text-slate-800 text-xs mb-1">2️⃣ 구글 앱스스크립트(Apps Script) 코드 복사</h3>
+                    <p class="text-[11px] text-slate-500 mb-1.5">
+                        구글 시트 상단 메뉴 [확장 프로그램] ➔ [Apps Script]를 누른 뒤 아래 코드를 붙여넣으세요.
+                    </p>
+                    <div class="relative bg-slate-900 text-slate-100 p-2.5 rounded-xl font-mono text-[11px] overflow-x-auto">
+                        <button onclick="copyAppsScriptCode()" class="absolute top-2 right-2 bg-amber-500 hover:bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded font-sans font-bold active:scale-95">복사</button>
+                        <pre id="codeSnippet">function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = JSON.parse(e.postData.contents);
+    sheet.appendRow([data.date, data.weather, data.content]);
+    return ContentService.createTextOutput(JSON.stringify({"result": "success"})).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({"result": "error", "message": err.toString()})).setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-2">
+                    <h3 class="font-bold text-slate-800 text-xs mb-1">3️⃣ 웹앱 배포 후 URL 입력</h3>
+                    <p class="text-[11px] text-slate-500 mb-1.5">
+                        Apps Script 우측 상단 [배포] ➔ [새 배포] (액세스: 모든 사용자) 후 발급된 Web App URL을 아래에 입력하세요.
+                    </p>
+                    <input type="text" id="modalScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2 border-2 border-amber-200 rounded-xl text-xs focus:outline-none focus:border-amber-500">
+                </div>
+            </div>
+
+            <div class="mt-4 flex justify-end gap-2">
+                <button onclick="playBtnSound(); closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs active:scale-95">취소</button>
+                <button onclick="saveScriptUrlFromModal()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs active:scale-95">저장하기</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // 로컬 스토리지 키
+        const SCRIPT_URL_KEY = 'magic_diary_script_url';
+
+        // Web Audio API 효과음 생성기
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // 버튼 통통 튀는 효과음
+        function playBtnSound() {
+            try {
+                const ctx = getAudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.08);
+            } catch (e) {
+                console.log('Audio Error:', e);
+            }
+        }
+
+        // 마법 일기 완성 효과음 (화려한 챠임음)
+        function playMagicSound() {
+            try {
+                const ctx = getAudioContext();
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+
+                notes.forEach((freq, index) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+
+                    const startTime = ctx.currentTime + (index * 0.07);
+                    gain.gain.setValueAtTime(0.15, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.3);
+                });
+            } catch (e) {
+                console.log('Audio Error:', e);
+            }
+        }
+
+        // 성공 효과음
+        function playSuccessSound() {
+            try {
+                const ctx = getAudioContext();
+                const notes = [659.25, 880.00];
+
+                notes.forEach((freq, index) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+
+                    const startTime = ctx.currentTime + (index * 0.1);
+                    gain.gain.setValueAtTime(0.18, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.25);
+                });
+            } catch (e) {
+                console.log('Audio Error:', e);
+            }
+        }
+
+        // 커스텀 토스트 알림 함수
+        function showToast(message, icon = '✨') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastIcon.innerText = icon;
+            toastMessage.innerText = message;
+
+            toast.classList.remove('hidden');
+            toast.classList.add('animate-toast');
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('animate-toast');
+            }, 3000);
+        }
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().substring(0, 10);
+            document.getElementById('diaryDate').value = today;
+
+            const savedUrl = localStorage.getItem(SCRIPT_URL_KEY) || '';
+            if (savedUrl) {
+                document.getElementById('modalScriptUrl').value = savedUrl;
+            }
+        });
+
+        // 입력 칸 비우기
+        function clearInput(inputId) {
+            playBtnSound();
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // 장소 선택 태그 클릭 시 처리
+        function selectLocationTag(locationText) {
+            playBtnSound();
+            appendTag('inputWhere', locationText);
+            updateActivitiesByLocation(locationText);
+        }
+
+        // 추천 활동 태그 업데이트
+        function updateActivitiesByLocation(locationText) {
+            const container = document.getElementById('dynamicActivityTags');
+            if (!container) return;
+
+            let activities = [];
+            if (locationText.includes('운동장')) {
+                activities = ['축구하기 ⚽', '달리기 시합 🏃', '줄넘기 연습 縄', '신나게 피구하기 🏐', '모래놀이 하기 🏰'];
+            } else if (locationText.includes('체육관')) {
+                activities = ['배드민턴 치기 🏸', '매트 운동하기 🤸', '피구 경기하기 🏐', '신나는 체육 게임 🎯'];
+            } else if (locationText.includes('교실')) {
+                activities = ['만들기 작품 만들기 ✂️', '친구와 이야기 나누기 💬', '열심히 공부하기 ✏️', '그림 그리기 🎨', '발표하기 🙋'];
+            } else if (locationText.includes('급식실')) {
+                activities = ['맛있는 급식 다 먹기 🍱', '잔반 안 남기기 🍽️', '친구와 웃으며 식사하기 😋', '골고루 먹기 🥗'];
+            } else if (locationText.includes('도서관')) {
+                activities = ['재미있는 동화책 읽기 📚', '위인전 탐방하기 📖', '독서록 열심히 쓰기 ✍️', '좋아하는 책 대출하기 🔖'];
+            } else if (locationText.includes('집')) {
+                activities = ['맛있는 간식 먹기 🍪', '장난감 성 만들기 🧸', '가족과 이야기하기 👨‍👩‍👧', '편안하게 휴식하기 🛋️'];
+            } else {
+                activities = ['그림 그리기 🎨', '공놀이 하기 ⚽', '블록 성 만들기 🧱', '책 읽기 📚', '맛있게 밥 먹기 🍚'];
+            }
+
+            let html = `<div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">🎯 추천 활동 (${locationText.trim() || '추천'}):</span>`;
+            
+            activities.forEach(act => {
+                html += `<button type="button" onclick="playBtnSound(); appendTag('inputWhat', '${act}')" class="px-2 py-0.5 bg-white border border-orange-200 text-orange-700 hover:bg-orange-100 rounded-md text-[11px] transition active:scale-95">${act}</button>`;
+            });
+            html += `</div>`;
+
+            container.innerHTML = html;
+        }
+
+        // 날씨 선택
+        function selectWeather(weatherName, btn) {
+            document.getElementById('selectedWeather').value = weatherName;
+            const buttons = document.querySelectorAll('#weatherGroup .weather-btn');
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // 스타일 선택
+        function selectStyle(styleKey, btn) {
+            document.getElementById('selectedStyle').value = styleKey;
+            const buttons = document.querySelectorAll('#styleGroup .style-btn');
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // 태그 단어 덧붙이기
+        function appendTag(inputId, text) {
+            playBtnSound();
+            const input = document.getElementById(inputId);
+            if (input.value.trim() === '') {
+                input.value = text;
+            } else {
+                if (!input.value.includes(text)) {
+                    input.value += ', ' + text;
+                }
+            }
+        }
+
+        // [Gemini API 기반 생동감 넘치는 일기 생성 함수]
+        async function buildMagicDiary() {
+            const dateVal = document.getElementById('diaryDate').value;
+            const weatherVal = document.getElementById('selectedWeather').value;
+            const styleVal = document.getElementById('selectedStyle').value;
+            
+            const where = document.getElementById('inputWhere').value.trim();
+            const who = document.getElementById('inputWho').value.trim();
+            const what = document.getElementById('inputWhat').value.trim();
+            const why = document.getElementById('inputWhy').value.trim();
+            const feeling = document.getElementById('inputFeeling').value.trim();
+
+            if (!where && !who && !what && !why && !feeling) {
+                showToast('이야기 조각을 적어도 하나 이상 입력해 주세요!', '💡');
+                return;
+            }
+
+            // 로딩 UI 적용
+            const genBtn = document.getElementById('generateBtn');
+            const btnIcon = document.getElementById('btnIcon');
+            const btnText = document.getElementById('btnText');
+            
+            genBtn.disabled = true;
+            btnIcon.innerText = '⏳';
+            btnText.innerText = 'Gemini AI가 일기를 짓는 중...';
+
+            document.getElementById('emptyGuide').classList.add('hidden');
+            document.getElementById('resultContent').classList.add('hidden');
+            document.getElementById('actionButtons').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+
+            playMagicSound();
+
+            let piecesArray = [];
+            if (where) piecesArray.push(`📍어디서: ${where}`);
+            if (who) piecesArray.push(`👫누구와: ${who}`);
+            if (what) piecesArray.push(`🎯무엇을: ${what}`);
+            if (why) piecesArray.push(`💡생각: ${why}`);
+            if (feeling) piecesArray.push(`💗기분: ${feeling}`);
+            
+            document.getElementById('summaryPieces').innerText = piecesArray.join(' | ');
+
+            // 말투 스타일 매핑
+            let styleInstruction = "";
+            if (styleVal === 'cheerful') {
+                styleInstruction = "신나고 경쾌하며 솔직 발랄한 말투. 생생한 감탄사와 구체적인 동작 묘사가 돋보이게 작성해 줘.";
+            } else if (styleVal === 'thoughtful') {
+                styleInstruction = "차분하고 깊이 생각하는 의젓한 말투. 관찰과 깨달음이 돋보이게 정돈된 어조로 작성해 줘.";
+            } else {
+                styleInstruction = "자연스럽고 솔직하며 몽글몽글한 초등학생 표준 말투. 일기다운 문맥과 생생한 흐름으로 작성해 줘.";
+            }
+
+            // 프롬프트 및 시스템 지침 작성
+            const systemPrompt = `너는 초등학생의 일기 쓰기를 지혜롭게 돕는 친절한 초등학교 교사이자 인공지능 '마법 일기 도우미'야.
+
+[가장 중요한 미션]
+절대 상투적이거나 뻔한 템플릿(예: "오늘 ~에서 ~와 잊을 수 없는 시간을 보냈다", "참 즐거운 하루였다" 등)을 고정적으로 반복해서 쓰지 마!
+학생이 제공한 단어와 상황 맥락에 완벽하게 몰입해서, 마치 초등학생 아이가 그날의 일상을 직접 옆에서 들려주듯 매번 다채롭고 문맥이 기막히게 매끄러운 일기를 써야 해.
+
+[일기 작성 가이드라인 (diary)]
+1. 학생이 입력한 조각 정보(장소, 사람, 행동, 이유/생각, 기분)를 빠짐없이 녹여내되, 자연스럽게 이어지는 서사 구조(도입-전개-느낀점)로 풀어내어라.
+2. 어투: 초등학생이 실제로 적은 듯 자연스러운 존댓말 아닌 과거 반말 어투(~했다, ~해보았다, ~하고 말았다, ~했더니 신기했다 등).
+3. 스타일: ${styleInstruction}
+4. 분량: 초등학교 저학년~중학년 수준의 알찬 4~6문장 분량.
+
+[선생님 한마디 가이드라인 (teacherFeedback)]
+1. 다정이 선생님이 학생에게 말하듯 따뜻하고 칭찬 가득한 말투(~했구나!, ~란다, ~렴 💖).
+2. 일기 속 구체적인 장소나 행동, 생각을 하나 콕 짚어 다정하게 칭찬과 응원의 말을 2~3문장으로 건네어라.`;
+
+            const userPromptText = `[학생이 제출한 일기 이야기 조각]
+- 날짜: ${dateVal}
+- 날씨: ${weatherVal}
+- 장소(어디서): ${where || '특별히 정해지지 않음'}
+- 인물(누구와): ${who || '혼자 또는 주변 사람들과'}
+- 활동(무엇을): ${what || '일상적인 활동'}
+- 생각/이유: ${why || '느낀 생각'}
+- 기분: ${feeling || '당시의 기분'}`;
+
+            const apiKey = ""; // Gemini API 키 (Canvas 실행 환경에서 자동 주입)
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{
+                    parts: [{ text: userPromptText }]
+                }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            diary: { 
+                                type: "STRING", 
+                                description: "매끄럽고 유일무이하게 작성된 초등학생 일기 본문" 
+                            },
+                            teacherFeedback: { 
+                                type: "STRING", 
+                                description: "다정이 선생님의 1대1 맞춤 칭찬 편지" 
+                            }
+                        },
+                        required: ["diary", "teacherFeedback"]
+                    }
+                }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API 호출 실패 (상태 코드: ${response.status})`);
+                }
+
+                const result = await response.json();
+                const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (!jsonText) {
+                    throw new Error('응답 데이터를 받아오지 못했습니다.');
+                }
+
+                const data = JSON.parse(jsonText);
+
+                // 결과 적용
+                document.getElementById('polishedDiary').innerText = data.diary;
+                document.getElementById('teacherFeedback').innerText = data.teacherFeedback;
+                document.getElementById('displayDateWeather').innerText = `${dateVal} | 날씨: ${weatherVal}`;
+
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('resultContent').classList.remove('hidden');
+                document.getElementById('actionButtons').classList.remove('hidden');
+
+                playSuccessSound();
+                showToast('Gemini AI가 세상에 하나뿐인 생생한 일기를 완성했어요!', '✨');
+
+            } catch (err) {
+                console.warn('Gemini API 연동 중 오류 발생, 로컬 엔진으로 대체합니다:', err);
+                
+                // API 실패 시 로컬 예비 백업 알고리즘 작동
+                generateFallbackDiary(dateVal, weatherVal, where, who, what, why, feeling);
+            } finally {
+                genBtn.disabled = false;
+                btnIcon.innerText = '🪄';
+                btnText.innerText = 'Gemini AI 마법 일기 완성하기! ✨';
+            }
+        }
+
+        // 백업용 다양성 향상 로컬 generator (API 에러 시 안전 장치)
+        function generateFallbackDiary(dateVal, weatherVal, where, who, what, why, feeling) {
+            let diary = "";
+            if (where && who) diary += `오늘 ${where} ${who} 모여 소중한 시간을 보냈다. `;
+            else if (where) diary += `오늘 ${where} 시간을 보내며 문득 생각에 잠겼다. `;
+            else if (who) diary += `오늘 ${who} 다정하게 어울려 하루를 채웠다. `;
+            else diary += `오늘 하루 내 마음속에 남은 특별한 기억이 있다. `;
+
+            if (what) diary += `${what.replace(/하기|그리기|만들기|먹기|읽기/g, '하며 기분 좋은 순간을 만들었다.')} `;
+            if (why) diary += `${why} 생각이 들어서 더 의미 있게 느껴졌다. `;
+            if (feeling) diary += `그때 내 기분은 ${feeling}. `;
+            
+            diary += "오늘의 이 따뜻한 경험을 오랫동안 기억하고 싶다.";
+
+            const feedback = `오늘 작성한 일기를 읽어보니 당시의 상황과 느낌이 생생하게 전해지는구나! 정성껏 써 내려간 모습이 정말 기특해. 내일도 행복 가득한 하루 보내렴! 💖`;
+
+            document.getElementById('polishedDiary').innerText = diary;
+            document.getElementById('teacherFeedback').innerText = feedback;
+            document.getElementById('displayDateWeather').innerText = `${dateVal} | 날씨: ${weatherVal}`;
+
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('resultContent').classList.remove('hidden');
+            document.getElementById('actionButtons').classList.remove('hidden');
+            showToast('일기가 다듬어졌습니다! (로컬 엔진)', '💡');
+        }
+
+        // 클립보드 복사 함수 (execCommand)
+        function safeCopyToClipboard(textToCopy, successMsg) {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                textarea.style.top = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast(successMsg, '📋');
+            } catch (err) {
+                console.error('Copy failed:', err);
+                showToast('클립보드 복사에 실패했습니다.', '⚠️');
+            }
+        }
+
+        // 일기 클립보드 복사
+        function copyDiaryText() {
+            playBtnSound();
+            const dateWeather = document.getElementById('displayDateWeather').innerText;
+            const diary = document.getElementById('polishedDiary').innerText;
+
+            const textToCopy = `[마법 일기장]\n${dateWeather}\n\n${diary}`;
+            safeCopyToClipboard(textToCopy, '일기 내용이 클립보드에 복사되었습니다!');
+        }
+
+        // 구글 시트 저장
+        async function saveToGoogleSheet() {
+            playBtnSound();
+            const scriptUrl = localStorage.getItem(SCRIPT_URL_KEY) || document.getElementById('modalScriptUrl').value.trim();
+            
+            if (!scriptUrl) {
+                openModal();
+                showToast('구글 시트 연동을 위해 Web App URL을 설정해 주세요.', '⚙️');
+                return;
+            }
+
+            const dateVal = document.getElementById('diaryDate').value;
+            const weatherVal = document.getElementById('selectedWeather').value;
+            const diary = document.getElementById('polishedDiary').innerText;
+
+            try {
+                await fetch(scriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        date: dateVal,
+                        weather: weatherVal,
+                        content: diary
+                    })
+                });
+                playSuccessSound();
+                showToast('구글 시트에 일기가 성공적으로 저장되었습니다!', '❎');
+            } catch (err) {
+                console.error(err);
+                showToast('구글 시트 저장 중 오류가 발생했습니다.', '❌');
+            }
+        }
+
+        // 모달 관리
+        function openModal() {
+            document.getElementById('guideModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('guideModal').classList.add('hidden');
+        }
+
+        function saveScriptUrlFromModal() {
+            playBtnSound();
+            const url = document.getElementById('modalScriptUrl').value.trim();
+            if (!url) {
+                showToast('Web App URL을 입력해 주세요!', '⚠️');
+                return;
+            }
+            localStorage.setItem(SCRIPT_URL_KEY, url);
+            showToast('구글 시트 연동 URL이 저장되었습니다!', '✅');
+            closeModal();
+        }
+
+        function copyAppsScriptCode() {
+            playBtnSound();
+            const code = document.getElementById('codeSnippet').innerText;
+            safeCopyToClipboard(code, '앱스스크립트 코드가 복사되었습니다!');
+        }
+    </script>
+</body>
+</html>
